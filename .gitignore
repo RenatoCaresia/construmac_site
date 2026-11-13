@@ -1,0 +1,9 @@
+# Arquivos brutos baixados do site antigo e da bio (não fazem parte do site)
+material-original/
+
+# Gerada por `node gerar-previa.js`
+previa/
+
+node_modules/
+.DS_Store
+Thumbs.db

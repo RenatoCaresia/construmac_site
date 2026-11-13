@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "construmac-site",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "dev-server.js"
+      ],
+      "port": 4173
+    },
+    {
+      "name": "construmac-previa",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "dev-server.js",
+        "previa",
+        "4174"
+      ],
+      "port": 4174
+    }
+  ]
+}
