@@ -18,6 +18,16 @@
         "4174"
       ],
       "port": 4174
+    },
+    {
+      "name": "construmac-pages",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "dev-server.js",
+        "docs",
+        "4175"
+      ],
+      "port": 4175
     }
   ]
 }

@@ -1,16 +1,20 @@
-// Gera ./previa a partir de ./site: a versão para apresentar por link (claude.ai).
-// Diferenças em relação ao site final: selo "prévia de proposta", noindex,
-// mapa como link (o visualizador não carrega iframes) e WhatsApp do formulário por link.
-// Uso: node gerar-previa.js
+// Gera a versão de prévia do site a partir de ./site, com selo "prévia de proposta" e noindex.
+//
+//   node gerar-previa.js          → ./previa  (link do claude.ai: mapa vira link e o formulário
+//                                              mostra um botão, porque o visualizador de lá não
+//                                              carrega iframes nem abre janelas)
+//   node gerar-previa.js pages    → ./docs    (GitHub Pages: site completo, só com o selo e o noindex)
 const fs = require('fs');
 const path = require('path');
 
+const PAGES = process.argv[2] === 'pages';
 const SRC = path.join(__dirname, 'site');
-const OUT = path.join(__dirname, 'previa');
+const OUT = path.join(__dirname, PAGES ? 'docs' : 'previa');
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.cpSync(SRC, OUT, { recursive: true });
-fs.rmSync(path.join(OUT, 'assets', 'img', 'og.jpg'), { force: true });
+if (PAGES) fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
+else fs.rmSync(path.join(OUT, 'assets', 'img', 'og.jpg'), { force: true });
 
 const swap = (text, from, to, label) => {
   if (!text.includes(from)) throw new Error(`Trecho não encontrado: ${label}`);
@@ -34,30 +38,34 @@ html = swap(html, '</head>', `<style>
 </style>
 </head>`, 'head');
 
-html = html.replace(/<div class="map" data-reveal>[\s\S]*?<\/div>/, `<a class="map map--link" data-reveal href="https://maps.app.goo.gl/P1o9qyqD7CrreAMJ9" target="_blank" rel="noopener">
-      <img src="assets/img/cubatao.webp" alt="" loading="lazy">
-      <span><strong>Av. Pedro José Cardoso, 411<br>Vila Paulista · Cubatão — SP</strong><span class="btn btn--primary">Abrir no Google Maps</span></span>
-    </a>`);
-if (!html.includes('map--link" data-reveal')) throw new Error('Trecho não encontrado: mapa');
-
 html = swap(html, '<script src="js/main.js" defer></script>',
   '<div class="previa" role="note"><b>Prévia</b><span>Proposta de novo site — ainda não é o site oficial da Construmac</span></div>\n<script src="js/main.js" defer></script>', 'script');
 
+if (!PAGES) {
+  html = html.replace(/<div class="map" data-reveal>[\s\S]*?<\/div>/, `<a class="map map--link" data-reveal href="https://maps.app.goo.gl/P1o9qyqD7CrreAMJ9" target="_blank" rel="noopener">
+      <img src="assets/img/cubatao.webp" alt="" loading="lazy">
+      <span><strong>Av. Pedro José Cardoso, 411<br>Vila Paulista · Cubatão — SP</strong><span class="btn btn--primary">Abrir no Google Maps</span></span>
+    </a>`);
+  if (!html.includes('map--link" data-reveal')) throw new Error('Trecho não encontrado: mapa');
+}
+
 fs.writeFileSync(htmlPath, html);
 
-/* ---------- main.js ---------- */
-const jsPath = path.join(OUT, 'js', 'main.js');
-let js = fs.readFileSync(jsPath, 'utf8');
-js = swap(js, `    note.textContent = 'Abrindo o WhatsApp com a sua mensagem…';
+/* ---------- main.js (só no link do claude.ai) ---------- */
+if (!PAGES) {
+  const jsPath = path.join(OUT, 'js', 'main.js');
+  let js = fs.readFileSync(jsPath, 'utf8');
+  js = swap(js, `    note.textContent = 'Abrindo o WhatsApp com a sua mensagem…';
     window.open(wa(text), '_blank', 'noopener');`,
-`    const go = document.createElement('a');
+  `    const go = document.createElement('a');
     go.href = wa(text);
     go.target = '_blank';
     go.rel = 'noopener';
     go.className = 'btn btn--dark btn--block';
     go.textContent = 'Mensagem pronta — abrir o WhatsApp';
     note.replaceChildren(go);`, 'window.open');
-fs.writeFileSync(jsPath, js);
+  fs.writeFileSync(jsPath, js);
+}
 
 const list = [];
 const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach((e) => {
@@ -65,4 +73,4 @@ const walk = (dir) => fs.readdirSync(dir, { withFileTypes: true }).forEach((e) =
   if (e.isDirectory()) walk(p); else list.push(path.relative(OUT, p).replace(/\\/g, '/'));
 });
 walk(OUT);
-console.log(JSON.stringify(list));
+console.log(`${path.basename(OUT)}/ gerada com ${list.length} arquivos`);
